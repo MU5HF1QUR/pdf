@@ -31,10 +31,7 @@
   <header>
     <strong>PDF:</strong>
     <select id="pdfSelect">
-      <!-- Put your PDFs here (filenames must match what’s in the repo) -->
-      
-      <option value="SDA_EXAM_1_5_2025.pdf">SDA_EXAM_1_5_2025</option>
-      <option value="SDA_EXAM_2_5_2025.pdf">SDA_EXAM_2_5_2025</option>
+      <option value="" disabled>Loading PDFs…</option>
     </select>
 
     <button id="openBtn">Open</button>
@@ -50,42 +47,80 @@
     const select = document.getElementById("pdfSelect");
     const viewer = document.getElementById("viewer");
 
+    // When on GitHub Pages: owner from hostname (e.g. mu5hf1qur.github.io), repo from path (e.g. /pdf/)
+    // Fallback for local or other hosting (uses your repo; change if different)
+    function getGitHubRepo() {
+      const host = window.location.hostname;
+      const path = window.location.pathname.replace(/^\/|\/$/g, "");
+      if (host.endsWith(".github.io")) {
+        const owner = host.replace(".github.io", "").toLowerCase();
+        const repo = path.split("/")[0] || "pdf";
+        return { owner, repo };
+      }
+      return { owner: "MU5HF1QUR", repo: "pdf" };
+    }
+
+    async function loadPdfList() {
+      const { owner, repo } = getGitHubRepo();
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+      try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error("Repo not found or not public");
+        const items = await res.json();
+        const pdfs = Array.isArray(items)
+          ? items.filter((f) => f.type === "file" && f.name.toLowerCase().endsWith(".pdf"))
+          : [];
+        select.innerHTML = "";
+        if (pdfs.length === 0) {
+          select.innerHTML = '<option value="" disabled>No PDFs in this repo</option>';
+          return;
+        }
+        pdfs.forEach((f) => {
+          const opt = document.createElement("option");
+          opt.value = f.name;
+          opt.textContent = f.name.replace(/\.pdf$/i, "");
+          select.appendChild(opt);
+        });
+        applyUrlOrFirst();
+      } catch (err) {
+        select.innerHTML = '<option value="" disabled>Could not load PDF list</option>';
+        console.error(err);
+      }
+    }
+
     function openSelectedPdf() {
       const file = select.value;
-
-      // Encode the filename safely
+      if (!file) return;
       const encoded = encodeURIComponent(file);
-
-      // Load the PDF in the iframe
       viewer.src = encoded;
-
-      // Update URL so you can share it
       const url = new URL(window.location.href);
       url.searchParams.set("file", file);
       history.replaceState({}, "", url);
     }
 
-    // Load from URL param if present: ?file=myfile.pdf
-    const params = new URLSearchParams(window.location.search);
-    const fileParam = params.get("file");
-    if (fileParam) {
-      // If it matches an option, select it; otherwise still try to load it
-      const exists = [...select.options].some(o => o.value === fileParam);
-      if (exists) select.value = fileParam;
-      viewer.src = encodeURIComponent(fileParam);
-    } else {
-      openSelectedPdf(); // default first option
+    function applyUrlOrFirst() {
+      const params = new URLSearchParams(window.location.search);
+      const fileParam = params.get("file");
+      if (fileParam && [...select.options].some((o) => o.value === fileParam)) {
+        select.value = fileParam;
+      } else if (select.options.length) {
+        select.selectedIndex = 0;
+      }
+      openSelectedPdf();
     }
 
     document.getElementById("openBtn").addEventListener("click", openSelectedPdf);
 
     document.getElementById("copyLinkBtn").addEventListener("click", async () => {
       const file = select.value;
+      if (!file) return;
       const share = new URL(window.location.href);
       share.searchParams.set("file", file);
       await navigator.clipboard.writeText(share.toString());
       alert("Copied link!");
     });
+
+    loadPdfList();
   </script>
 </body>
 </html>
