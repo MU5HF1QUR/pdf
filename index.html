@@ -1,40 +1,196 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My PDF Viewer</title>
   <style>
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
     header {
       padding: 12px 16px;
-      border-bottom: 1px solid rgba(127,127,127,.3);
+      border-bottom: 1px solid rgba(127, 127, 127, .3);
       display: flex;
       gap: 10px;
       align-items: center;
       flex-wrap: wrap;
     }
-    select, button {
+
+    select,
+    button {
       padding: 8px 10px;
       border-radius: 8px;
-      border: 1px solid rgba(127,127,127,.5);
-      background: rgba(127,127,127,.12);
+      border: 1px solid rgba(127, 127, 127, .5);
+      background: rgba(127, 127, 127, .12);
       font-size: 14px;
       cursor: pointer;
     }
-    main { height: calc(100vh - 60px); }
-    iframe { width: 100%; height: 100%; border: 0; }
-    .note { font-size: 13px; opacity: .75; }
+
+    main {
+      height: calc(100vh - 60px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-wrap {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      border: 0;
+    }
+
+    .note {
+      font-size: 13px;
+      opacity: .75;
+    }
+
+    .gemini-section {
+      border-top: 1px solid rgba(127, 127, 127, .3);
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, .03);
+    }
+
+    .gemini-section summary {
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .gemini-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .gemini-row label {
+      min-width: 80px;
+    }
+
+    .gemini-section input[type="password"],
+    .gemini-section input[type="text"],
+    .gemini-section textarea {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(127, 127, 127, .5);
+      font-size: 14px;
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .gemini-section textarea {
+      min-height: 60px;
+      resize: vertical;
+      width: 100%;
+    }
+
+    .gemini-section button {
+      padding: 8px 14px;
+    }
+
+    .analysis-panel {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid rgba(127, 127, 127, .3);
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .analysis-panel.loading {
+      color: #666;
+    }
+
+    .analysis-panel.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .analysis-panel:empty {
+      display: none;
+    }
+
+    .analysis-panel.markdown {
+      white-space: normal;
+    }
+
+    .analysis-panel.markdown h1,
+    .analysis-panel.markdown h2,
+    .analysis-panel.markdown h3 {
+      margin: 0.75em 0 0.35em;
+      font-weight: 600;
+    }
+
+    .analysis-panel.markdown h1 { font-size: 1.25em; }
+    .analysis-panel.markdown h2 { font-size: 1.1em; }
+    .analysis-panel.markdown h3 { font-size: 1em; }
+
+    .analysis-panel.markdown p {
+      margin: 0.5em 0;
+    }
+
+    .analysis-panel.markdown ul,
+    .analysis-panel.markdown ol {
+      margin: 0.5em 0;
+      padding-left: 1.5em;
+    }
+
+    .analysis-panel.markdown code {
+      background: rgba(127, 127, 127, .15);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .analysis-panel.markdown pre {
+      margin: 0.5em 0;
+      padding: 10px;
+      overflow-x: auto;
+      background: rgba(0, 0, 0, .06);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .analysis-panel.markdown pre code {
+      background: none;
+      padding: 0;
+    }
+
+    .analysis-panel.markdown strong {
+      font-weight: 600;
+    }
+
+    .analysis-panel.markdown blockquote {
+      margin: 0.5em 0;
+      padding-left: 1em;
+      border-left: 3px solid rgba(127, 127, 127, .4);
+      color: #555;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown.js/0.5.0/markdown.min.js"></script>
 </head>
+
 <body>
   <header>
     <strong>PDF:</strong>
     <select id="pdfSelect">
-      <!-- Put your PDFs here (filenames must match what’s in the repo) -->
-      
-      <option value="SDA_EXAM_1_5_2025.pdf">SDA_EXAM_1_5_2025</option>
-      <option value="SDA_EXAM_2_5_2025.pdf">SDA_EXAM_2_5_2025</option>
+      <option value="" disabled>Loading PDFs…</option>
     </select>
 
     <button id="openBtn">Open</button>
@@ -42,50 +198,201 @@
     <span class="note">Tip: share links like <code>?file=myfile.pdf</code></span>
   </header>
 
+  <details class="gemini-section">
+    <summary>Summarize with Gemini AI</summary>
+    <div class="gemini-row">
+      <label for="geminiKey">API key</label>
+      <input type="password" id="geminiKey" placeholder="Enter your Gemini API key" autocomplete="off" />
+      <span class="note">Stored in this device only</span>
+    </div>
+    <div class="gemini-row">
+      <label for="geminiPrompt">Prompt</label>
+      <textarea id="geminiPrompt"
+        placeholder="e.g. Summarize this PDF, or ask a specific question...">Summarize this PDF and highlight the main points.</textarea>
+    </div>
+    <div class="gemini-row">
+      <button type="button" id="summarizeBtn">Summarize PDF</button>
+    </div>
+    <div id="analysisPanel" class="analysis-panel" role="status"></div>
+  </details>
+
   <main>
-    <iframe id="viewer" title="PDF Viewer"></iframe>
+    <div class="main-wrap">
+      <iframe id="viewer" title="PDF Viewer"></iframe>
+    </div>
   </main>
 
   <script>
     const select = document.getElementById("pdfSelect");
     const viewer = document.getElementById("viewer");
 
+    // When on GitHub Pages: owner from hostname (e.g. mu5hf1qur.github.io), repo from path (e.g. /pdf/)
+    // Fallback for local or other hosting (uses your repo; change if different)
+    function getGitHubRepo() {
+      const host = window.location.hostname;
+      const path = window.location.pathname.replace(/^\/|\/$/g, "");
+      if (host.endsWith(".github.io")) {
+        const owner = host.replace(".github.io", "").toLowerCase();
+        const repo = path.split("/")[0] || "pdf";
+        return { owner, repo };
+      }
+      return { owner: "MU5HF1QUR", repo: "pdf" };
+    }
+
+    async function loadPdfList() {
+      const { owner, repo } = getGitHubRepo();
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+      try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error("Repo not found or not public");
+        const items = await res.json();
+        const pdfs = Array.isArray(items)
+          ? items.filter((f) => f.type === "file" && f.name.toLowerCase().endsWith(".pdf"))
+          : [];
+        select.innerHTML = "";
+        if (pdfs.length === 0) {
+          select.innerHTML = '<option value="" disabled>No PDFs in this repo</option>';
+          return;
+        }
+        pdfs.forEach((f) => {
+          const opt = document.createElement("option");
+          opt.value = f.name;
+          opt.textContent = f.name.replace(/\.pdf$/i, "");
+          select.appendChild(opt);
+        });
+        applyUrlOrFirst();
+      } catch (err) {
+        select.innerHTML = '<option value="" disabled>Could not load PDF list</option>';
+        console.error(err);
+      }
+    }
+
     function openSelectedPdf() {
       const file = select.value;
-
-      // Encode the filename safely
+      if (!file) return;
       const encoded = encodeURIComponent(file);
-
-      // Load the PDF in the iframe
       viewer.src = encoded;
-
-      // Update URL so you can share it
       const url = new URL(window.location.href);
       url.searchParams.set("file", file);
       history.replaceState({}, "", url);
     }
 
-    // Load from URL param if present: ?file=myfile.pdf
-    const params = new URLSearchParams(window.location.search);
-    const fileParam = params.get("file");
-    if (fileParam) {
-      // If it matches an option, select it; otherwise still try to load it
-      const exists = [...select.options].some(o => o.value === fileParam);
-      if (exists) select.value = fileParam;
-      viewer.src = encodeURIComponent(fileParam);
-    } else {
-      openSelectedPdf(); // default first option
+    function applyUrlOrFirst() {
+      const params = new URLSearchParams(window.location.search);
+      const fileParam = params.get("file");
+      if (fileParam && [...select.options].some((o) => o.value === fileParam)) {
+        select.value = fileParam;
+      } else if (select.options.length) {
+        select.selectedIndex = 0;
+      }
+      openSelectedPdf();
     }
 
     document.getElementById("openBtn").addEventListener("click", openSelectedPdf);
 
     document.getElementById("copyLinkBtn").addEventListener("click", async () => {
       const file = select.value;
+      if (!file) return;
       const share = new URL(window.location.href);
       share.searchParams.set("file", file);
       await navigator.clipboard.writeText(share.toString());
       alert("Copied link!");
     });
+
+    // ——— Gemini AI ———
+    const GEMINI_KEY_STORAGE = "gemini_api_key";
+    const geminiKeyInput = document.getElementById("geminiKey");
+    const geminiPrompt = document.getElementById("geminiPrompt");
+    const summarizeBtn = document.getElementById("summarizeBtn");
+    const analysisPanel = document.getElementById("analysisPanel");
+
+    const savedKey = localStorage.getItem(GEMINI_KEY_STORAGE);
+    if (savedKey) geminiKeyInput.value = savedKey;
+    geminiKeyInput.addEventListener("change", () => {
+      const v = geminiKeyInput.value.trim();
+      if (v) localStorage.setItem(GEMINI_KEY_STORAGE, v);
+      else localStorage.removeItem(GEMINI_KEY_STORAGE);
+    });
+
+    function setAnalysisPanel(html, className = "") {
+      analysisPanel.innerHTML = html;
+      analysisPanel.className = "analysis-panel " + className;
+      analysisPanel.removeAttribute("aria-busy");
+    }
+
+    summarizeBtn.addEventListener("click", async () => {
+      const apiKey = geminiKeyInput.value.trim();
+      if (!apiKey) {
+        setAnalysisPanel("Please enter your Gemini API key above.", "error");
+        return;
+      }
+      const file = select.value;
+      if (!file) {
+        setAnalysisPanel("Please select a PDF first.", "error");
+        return;
+      }
+      const prompt = geminiPrompt.value.trim() || "Summarize this PDF and highlight the main points.";
+
+      setAnalysisPanel("Loading PDF and analyzing…", "loading");
+      analysisPanel.setAttribute("aria-busy", "true");
+      summarizeBtn.disabled = true;
+
+      try {
+        const path = window.location.pathname.replace(/#.*$/, "");
+        const baseUrl = path.endsWith("/") ? window.location.origin + path : window.location.origin + path.slice(0, path.lastIndexOf("/") + 1);
+        const pdfUrl = baseUrl + encodeURIComponent(file);
+        const pdfRes = await fetch(pdfUrl);
+        if (!pdfRes.ok) throw new Error("Could not load the PDF.");
+        const buffer = await pdfRes.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        const base64 = btoa(binary);
+
+        const model = "gemini-2.0-flash";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const body = {
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: "application/pdf", data: base64 } }
+            ]
+          }]
+        };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          const msg = data?.error?.message || data?.error?.status || "API request failed";
+          throw new Error(msg);
+        }
+
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          const html = typeof markdown !== "undefined" && markdown.toHTML
+            ? markdown.toHTML(text)
+            : text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+          setAnalysisPanel(html, typeof markdown !== "undefined" && markdown.toHTML ? "markdown" : "");
+        } else {
+          setAnalysisPanel("No text in response.");
+        }
+      } catch (err) {
+        setAnalysisPanel(err.message || "Analysis failed.", "error");
+      } finally {
+        summarizeBtn.disabled = false;
+      }
+    });
+
+    loadPdfList();
   </script>
 </body>
+
 </html>
